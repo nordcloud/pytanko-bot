@@ -1,0 +1,25 @@
+service: oncall-slashcommand
+
+
+provider:
+  name: aws
+  runtime: go1.x
+  stage: staging
+  region: eu-west-1
+  timeout: 30
+
+functions:
+  pytanko:
+    handler: bin/pytanko-bot
+    events:
+      - http:
+          path: slash
+          method: post
+    environment:
+      API_URL: ${env:API_URL}
+      API_KEY: ${env:API_KEY}
+package:
+ exclude:
+   - ./**
+ include:
+   - ./bin/**
