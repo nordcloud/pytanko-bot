@@ -9,4 +9,5 @@ require (
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/machinebox/graphql v0.2.2
 	github.com/nlopes/slack v0.6.0
+	github.com/sirupsen/logrus v1.4.2
 )

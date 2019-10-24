@@ -15,9 +15,34 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-// Response alias
+// Response https://serverless.com/framework/docs/providers/aws/events/apigateway/#lambda-proxy-integration
 type Response events.APIGatewayProxyResponse
 
+//Build method created APIGatewayProxyResponse using provided status code and message or the body payload
+func Respond(statusCode int, message string) Response {
+	var buf bytes.Buffer
+
+	var body []byte
+
+	if message != "" {
+		body, _ = json.Marshal(map[string]interface{}{
+			"text": message,
+		})
+	}
+
+	json.HTMLEscape(&buf, body)
+
+	resp := Response{
+		StatusCode: statusCode,
+		Body:       buf.String(),
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}
+	return resp
+}
+
+// ApiResponse defines basic AppSync return
 type ApiResponse struct {
 	Data   interface{} `json:"data"`
 	Errors *string     `json:"errors"`
@@ -26,15 +51,17 @@ type ApiResponse struct {
 // Handler is the main entry for the Lambda function
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (Response, error) {
 
-	var buf bytes.Buffer
-
 	params, err := url.ParseQuery(request.Body)
 
 	if err != nil {
 		log.Fatal("Could not parse the query")
 	}
 
-	fmt.Println(params.Get("text"))
+	if params.Get("text") == "" {
+		log.Println("Question was not asked")
+		return Respond(200, "Question was not provided ☹️"), nil
+	}
+
 	fmt.Printf("User %s asked: %s\n", params.Get("user_name"), params.Get("text"))
 	client := graphql.NewClient(os.Getenv("API_URL"))
 
@@ -55,24 +82,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (Respon
 	}
 
 	if respData.Errors != nil {
-		log.Fatal("Wyjebane", respData.Errors)
+		log.Fatal("Received an error from the API", respData.Errors)
 	}
 
-	body, _ := json.Marshal(map[string]string{
-		"text": "Question added 💪",
-	})
-
-	json.HTMLEscape(&buf, body)
-
-	resp := Response{
-		StatusCode: 200,
-		Body:       buf.String(),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
-
-	return resp, nil
+	return Respond(200, "Question added 💪"), nil
 }
 
 func main() {
